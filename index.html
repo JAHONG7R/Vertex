@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vertex Habit Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: {
+        lime: '#d4f34a', dark: '#101010', surface: '#151515',
+        card: '#1c1c1c', border: '#2a2a2a', subtle: '#333333'
+      }}, fontFamily: { sans: ['Geist', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } }
+    };
+  </script>
+  <style>
+    body { background:#0e0e0e; color:#f3f3f3; font-family:'Geist',sans-serif; -webkit-font-smoothing:antialiased; }
+    .scrollbar-none::-webkit-scrollbar { display:none; }
+    .scrollbar-none { -ms-overflow-style:none; scrollbar-width:none; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid #d4f34a; outline-offset:2px; }
+  </style>
+</head>
+<body class="min-h-screen bg-[#0e0e0e] text-[#ededed] flex flex-col antialiased selection:bg-[#d4f34a] selection:text-black">
+<header class="sticky top-0 z-40 w-full border-b border-[#222] bg-[#111]/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between">
+  <div class="flex items-center gap-6">
+    <div class="flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded bg-[#d4f34a] flex items-center justify-center font-bold text-black text-sm">▲</div>
+      <span class="font-bold tracking-tight text-white text-base">VERTEX <span class="text-xs uppercase font-mono tracking-widest text-[#777] ml-1">Tracker</span></span>
+    </div>
+    <nav class="hidden md:flex items-center gap-5 text-xs uppercase tracking-wider text-[#999] font-medium">
+      <button id="navDashboard" class="text-white hover:text-[#d4f34a] py-1 border-b-2 border-[#d4f34a]">Dashboard</button>
+      <button id="navAnalytics" class="hover:text-white py-1 border-b-2 border-transparent">Analytics</button>
+      <button id="navSettings" class="hover:text-white py-1 border-b-2 border-transparent">Settings</button>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3">
+    <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-xs">
+      <span class="w-2 h-2 rounded-full bg-[#d4f34a]"></span><span class="text-[#a0a0a0]">Total Streak:</span>
+      <span id="streakStatBadge" class="font-bold text-[#d4f34a]">0 Days</span>
+    </div>
+    <div id="userProfileBtn" class="flex items-center gap-2.5 pl-2 pr-3 py-1 rounded-full bg-[#181818] border border-[#262626] cursor-pointer hover:border-[#383838]">
+      <div id="userAvatar" class="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-xs font-mono text-[#d4f34a]">A</div>
+      <span id="userNameLabel" class="text-xs font-medium text-white max-w-[100px] truncate">Alex V.</span>
+      <button id="logoutBtn" title="Reset demo profile" class="text-[#777] hover:text-red-400 text-xs ml-1" aria-label="Reset demo profile">↪</button>
+    </div>
+  </div>
+</header>
+
+<div class="border-b border-[#1c1c1c] bg-[#121212]/60 px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+  <div class="flex items-center gap-3">
+    <span id="currentWeekRange" class="text-xs font-mono uppercase tracking-wider text-[#888]"></span>
+    <span id="databaseIndicator" class="px-2 py-0.5 text-[10px] uppercase font-mono tracking-widest rounded bg-[#202020] text-[#aaa] border border-[#2c2c2c]">● Local storage</span>
+  </div>
+  <div class="flex items-center gap-2.5">
+    <button id="openNewHabitBtn" class="px-3.5 py-1.5 rounded-lg bg-[#d4f34a] text-black font-semibold text-xs hover:bg-[#e2fa68]">＋ New Habit</button>
+    <div class="relative">
+      <button id="toggleFilterBtn" class="px-3 py-1.5 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#bbb] text-xs hover:text-white" aria-expanded="false">All Categories ▾</button>
+      <div id="filterMenu" class="hidden absolute right-0 top-full mt-2 z-30 min-w-44 rounded-xl border border-[#303030] bg-[#171717] p-2 shadow-xl"></div>
+    </div>
+  </div>
+</div>
+
+<main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-8">
+  <section id="dashboardSection" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="p-4 rounded-xl bg-[#141414] border border-[#222]"><div class="text-[11px] uppercase tracking-wider text-[#777] font-mono">Today's Completion</div><div id="statTodayRate" class="text-2xl font-bold text-white mt-1">0%</div><div class="text-xs text-[#a3a3a3] mt-1"><span id="statTodayCount" class="text-[#d4f34a]">0 of 0</span> completed today</div></div>
+    <div class="p-4 rounded-xl bg-[#141414] border border-[#222]"><div class="text-[11px] uppercase tracking-wider text-[#777] font-mono">Current Streak</div><div id="statCurrentStreak" class="text-2xl font-bold text-[#d4f34a] mt-1">0 Days</div><div class="text-xs text-[#a3a3a3] mt-1">Consecutive complete days</div></div>
+    <div class="p-4 rounded-xl bg-[#141414] border border-[#222]"><div class="text-[11px] uppercase tracking-wider text-[#777] font-mono">30-Day Adherence</div><div id="stat30DayRate" class="text-2xl font-bold text-white mt-1">0%</div><div id="stat30DayCaption" class="text-xs text-[#a3a3a3] mt-1">Last 30 calendar days</div></div>
+    <div class="p-4 rounded-xl bg-[#141414] border border-[#222]"><div class="text-[11px] uppercase tracking-wider text-[#777] font-mono">Active Disciplines</div><div id="statActiveHabitsCount" class="text-2xl font-bold text-white mt-1">0 Habits</div><div id="archivedCount" class="text-xs text-[#777] mt-1">0 archived</div></div>
+  </section>
+
+  <section id="matrixSection" class="rounded-2xl bg-[#131313] border border-[#242424] overflow-hidden shadow-2xl">
+    <div class="p-5 sm:p-6 border-b border-[#222] flex flex-wrap items-center justify-between gap-4">
+      <div><div class="text-[10px] font-mono uppercase tracking-widest text-[#d4f34a] mb-1">01 — Daily Protocol</div><h2 class="text-lg font-bold text-white tracking-tight">Active Disciplines & Daily Check-ins</h2></div>
+      <div class="text-xs text-[#666] font-mono">Tap a checkbox to log or undo a habit</div>
+    </div>
+    <div class="overflow-x-auto scrollbar-none">
+      <table class="w-full text-left border-collapse min-w-[900px]">
+        <thead><tr class="border-b border-[#1f1f1f] text-[11px] uppercase font-mono tracking-wider text-[#666] bg-[#161616]/70">
+          <th class="py-3.5 px-6 font-medium">Habit & Target</th><th class="py-3.5 px-3 font-medium">Category</th>
+          <th id="colDay0" class="py-3.5 px-2 text-center w-12 font-medium">Mon</th><th id="colDay1" class="py-3.5 px-2 text-center w-12 font-medium">Tue</th><th id="colDay2" class="py-3.5 px-2 text-center w-12 font-medium">Wed</th><th id="colDay3" class="py-3.5 px-2 text-center w-12 font-medium">Thu</th><th id="colDay4" class="py-3.5 px-2 text-center w-12 font-medium">Fri</th><th id="colDay5" class="py-3.5 px-2 text-center w-12 font-medium">Sat</th><th id="colDay6" class="py-3.5 px-2 text-center w-12 font-medium">Sun</th>
+          <th class="py-3.5 px-4 text-right font-medium">Success</th><th class="py-3.5 px-4 text-right font-medium">Streak</th><th class="py-3.5 px-4 text-center font-medium">Actions</th>
+        </tr></thead>
+        <tbody id="habitsTableBody" class="divide-y divide-[#1c1c1c] text-sm"></tbody>
+      </table>
+    </div>
+    <div id="emptyStateContainer" class="hidden p-12 text-center"><div class="w-12 h-12 rounded-full bg-[#1e1e1e] border border-[#2e2e2e] flex items-center justify-center mx-auto text-[#777] mb-3">＋</div><h4 class="text-sm font-semibold text-white">No habits found</h4><p class="text-xs text-[#777] max-w-sm mx-auto mt-1">Create a habit or choose another category filter.</p><button id="emptyAddHabitBtn" class="mt-4 px-4 py-2 rounded-lg bg-[#d4f34a] text-black text-xs font-bold">Create First Habit</button></div>
+    <div class="px-6 py-3.5 bg-[#141414] border-t border-[#1f1f1f] flex flex-wrap items-center justify-between text-xs text-[#888] gap-2"><div id="weeklyCompletionsSummary">Weekly completed: 0 / 0 (0%)</div><div class="text-[#d4f34a] font-mono text-[11px]">Consistency is built one day at a time</div></div>
+  </section>
+
+  <section id="growthSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="p-5 sm:p-6 rounded-2xl bg-[#131313] border border-[#242424] space-y-4">
+      <div><div class="text-[10px] font-mono uppercase tracking-widest text-[#d4f34a]">04 — Goals & Rewards</div><h2 class="text-lg font-bold text-white mt-1">Goals, XP & Achievements</h2><p class="text-xs text-[#888] mt-1">Set a target and earn XP whenever you complete a habit.</p></div>
+      <form id="goalForm" class="grid grid-cols-1 sm:grid-cols-3 gap-2"><input id="goalTitle" required maxlength="70" placeholder="Goal (e.g. Read 20 days)" class="sm:col-span-3 min-w-0 px-3 py-2.5 rounded-lg bg-[#101010] border border-[#2b2b2b] text-sm text-white"><select id="goalType" class="min-w-0 px-3 py-2.5 rounded-lg bg-[#101010] border border-[#2b2b2b] text-sm text-white"><option value="checkins">Habit check-ins</option><option value="days">Active days</option></select><input id="goalTarget" type="number" min="1" max="10000" value="20" required class="min-w-0 px-3 py-2.5 rounded-lg bg-[#101010] border border-[#2b2b2b] text-sm text-white" aria-label="Goal target"><button class="sm:col-span-3 px-4 py-2.5 rounded-lg bg-[#d4f34a] text-black text-sm font-bold">＋ Add Goal</button></form>
+      <div id="goalsList" class="space-y-3"><p class="text-xs text-[#777]">No goals yet.</p></div>
+      <div class="rounded-xl bg-[#191919] border border-[#292929] p-4 flex items-center justify-between gap-3"><div><div class="text-[10px] uppercase font-mono tracking-widest text-[#888]">Lifetime XP</div><div id="xpTotal" class="text-2xl font-bold text-[#d4f34a]">0 XP</div><div id="xpLevel" class="text-xs text-[#aaa]">Level 1 · Beginner</div></div><div class="text-right"><div class="text-[10px] uppercase font-mono text-[#888]">Achievements</div><div id="achievementCount" class="text-xl font-bold text-white">0/5</div></div></div>
+      <div id="achievementsList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+    </div>
+    <div class="p-5 sm:p-6 rounded-2xl bg-[#131313] border border-[#242424] space-y-4">
+      <div><div class="text-[10px] font-mono uppercase tracking-widest text-[#d4f34a]">05 — Schedule & Recovery</div><h2 class="text-lg font-bold text-white mt-1">Flexible Schedule</h2><p class="text-xs text-[#888] mt-1">Choose days for each habit and mark planned break days.</p></div>
+      <div><label for="scheduleHabit" class="block text-xs font-mono text-[#999] mb-1.5">Habit</label><select id="scheduleHabit" class="w-full px-3 py-2.5 rounded-lg bg-[#101010] border border-[#2b2b2b] text-sm text-white"></select></div>
+      <div><div class="text-xs text-[#999] mb-2">Scheduled weekdays</div><div id="weekdayPicker" class="grid grid-cols-7 gap-1"></div><button id="saveScheduleBtn" class="mt-3 w-full px-4 py-2.5 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:border-[#d4f34a]">Save schedule</button></div>
+      <div class="border-t border-[#292929] pt-4"><label for="breakDate" class="block text-xs font-mono text-[#999] mb-1.5">Planned rest / pause date</label><div class="flex gap-2"><input id="breakDate" type="date" class="min-w-0 flex-1 px-3 py-2.5 rounded-lg bg-[#101010] border border-[#2b2b2b] text-sm text-white"><button id="addBreakBtn" class="px-3 py-2 rounded-lg bg-[#d4f34a] text-black text-xs font-bold">Add day</button></div><p class="text-[11px] text-[#777] mt-2">Pause days are excluded from streak continuity; they are not counted as completed habits.</p><div id="breakDaysList" class="flex flex-wrap gap-2 mt-3"></div></div>
+      <div class="border-t border-[#292929] pt-4"><div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold text-white">Habit reminders</div><p class="text-xs text-[#888] mt-1">Reminders work while this page is open; mobile browsers may restrict background alerts.</p></div><button id="enableNotificationsBtn" class="shrink-0 px-3 py-2 rounded-lg bg-[#222] border border-[#333] text-xs text-white">Enable</button></div><div id="reminderList" class="space-y-2 mt-3"></div></div>
+    </div>
+  </section>
+
+  <section id="advancedAnalyticsSection" class="p-5 sm:p-6 rounded-2xl bg-[#131313] border border-[#242424]">
+    <div class="flex flex-wrap items-end justify-between gap-3"><div><div class="text-[10px] font-mono uppercase tracking-widest text-[#d4f34a]">06 — Advanced Analytics</div><h2 class="text-lg font-bold text-white mt-1">Consistency over time</h2><p class="text-xs text-[#888] mt-1">Real completion history from your saved check-ins.</p></div><select id="analyticsRange" class="px-3 py-2 rounded-lg bg-[#101010] border border-[#2b2b2b] text-sm text-white"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select></div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5"><div class="rounded-lg bg-[#191919] p-3"><div class="text-[10px] text-[#888] uppercase">Completion rate</div><div id="advancedRate" class="text-xl font-bold text-[#d4f34a] mt-1">0%</div></div><div class="rounded-lg bg-[#191919] p-3"><div class="text-[10px] text-[#888] uppercase">Check-ins</div><div id="advancedCheckins" class="text-xl font-bold text-white mt-1">0</div></div><div class="rounded-lg bg-[#191919] p-3"><div class="text-[10px] text-[#888] uppercase">Best habit</div><div id="advancedBest" class="text-sm font-bold text-white mt-1">—</div></div><div class="rounded-lg bg-[#191919] p-3"><div class="text-[10px] text-[#888] uppercase">Rest days</div><div id="advancedBreaks" class="text-xl font-bold text-white mt-1">0</div></div></div>
+    <div id="advancedHabitStats" class="mt-4 space-y-3"></div>
+  </section>
+
+  <section id="analyticsSection" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 p-6 rounded-2xl bg-[#131313] border border-[#242424]">
+      <div class="flex items-center justify-between mb-6 gap-3"><div><div class="text-[10px] font-mono uppercase tracking-widest text-[#888]">Volume Analysis</div><h3 class="text-base font-bold text-white mt-0.5">Daily Completion Rate (Current Week)</h3></div><span class="text-xs font-mono text-[#d4f34a] bg-[#1d2611] px-2.5 py-1 rounded-md border border-[#394a1a]">Target: 85%</span></div>
+      <div id="barChartContainer" class="h-44 flex items-end justify-between gap-3 pt-6 border-b border-[#242424] pb-2 px-2"></div><div id="barChartLabels" class="flex justify-between px-2 pt-2 text-[10px] font-mono uppercase text-[#666]"></div>
+    </div>
+    <div class="p-6 rounded-2xl bg-[#131313] border border-[#242424] flex flex-col justify-between">
+      <div><div class="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#d4f34a]">⚡ Habit Insight</div><h4 id="insightTitle" class="text-base font-bold text-white mt-1">Your weekly overview</h4><p id="insightText" class="text-xs text-[#999] leading-relaxed mt-2.5">Complete habits consistently to build a reliable routine.</p><div class="mt-6 pt-5 border-t border-[#222]"><div class="text-[10px] font-mono uppercase tracking-wider text-[#777]">Reminder</div><p class="text-xs text-[#999] mt-1 leading-relaxed">This tracker stores data locally in this browser. Export a backup from Settings before clearing browser data.</p></div></div>
+      <div class="mt-6 pt-4 border-t border-[#1e1e1e] flex items-center justify-between"><span class="text-xs text-[#777] font-mono">Storage</span><span class="text-xs text-[#d4f34a] font-mono">Local device</span></div>
+    </div>
+  </section>
+</main>
+
+<div id="habitModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="w-full max-w-md rounded-2xl bg-[#161616] border border-[#282828] p-6 shadow-2xl relative">
+    <div class="flex items-center justify-between pb-4 border-b border-[#242424]"><h3 id="modalTitle" class="text-base font-bold text-white">Create New Habit</h3><button id="closeModalBtn" class="text-[#777] hover:text-white" aria-label="Close">✕</button></div>
+    <form id="habitForm" class="mt-4 space-y-4"><input type="hidden" id="habitIdInput">
+      <div><label for="habitTitleInput" class="block text-xs font-mono uppercase text-[#888] mb-1.5">Habit Title *</label><input type="text" id="habitTitleInput" required maxlength="100" placeholder="e.g., Read for 20 minutes" class="w-full px-3.5 py-2.5 rounded-lg bg-[#111] border border-[#2b2b2b] text-sm text-white focus:outline-none focus:border-[#d4f34a]"></div>
+      <div><label for="habitCategoryInput" class="block text-xs font-mono uppercase text-[#888] mb-1.5">Category</label><select id="habitCategoryInput" class="w-full px-3.5 py-2.5 rounded-lg bg-[#111] border border-[#2b2b2b] text-sm text-white"><option value="discipline">Discipline</option><option value="focus">Focus</option><option value="health">Health</option><option value="mindset">Mindset</option><option value="recovery">Recovery</option></select></div>
+      <div><label for="habitFrequencyInput" class="block text-xs font-mono uppercase text-[#888] mb-1.5">Target Frequency</label><select id="habitFrequencyInput" class="w-full px-3.5 py-2.5 rounded-lg bg-[#111] border border-[#2b2b2b] text-sm text-white"><option value="7">Every day (7/week)</option><option value="6">6 days/week</option><option value="5">5 days/week</option><option value="3">3 days/week</option></select></div>
+      <div class="pt-4 flex items-center justify-end gap-3"><button type="button" id="cancelModalBtn" class="px-4 py-2 rounded-lg bg-[#222] text-[#999] text-xs hover:text-white">Cancel</button><button type="submit" class="px-5 py-2 rounded-lg bg-[#d4f34a] text-black text-xs font-bold hover:bg-[#e2fa68]">Save Habit</button></div>
+    </form>
+  </div>
+</div>
+
+<div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="w-full max-w-md rounded-2xl bg-[#161616] border border-[#282828] p-6 shadow-2xl">
+    <div class="flex items-center justify-between pb-4 border-b border-[#242424]"><h3 id="settingsTitle" class="text-base font-bold text-white">Settings & Data</h3><button id="closeSettingsBtn" class="text-[#777] hover:text-white" aria-label="Close settings">✕</button></div>
+    <p class="text-xs text-[#aaa] leading-relaxed mt-4">Your habits and check-ins are saved in this browser using local storage. They do not sync across devices.</p>
+    <div class="grid grid-cols-1 gap-3 mt-5"><button id="exportBtn" class="px-4 py-3 rounded-lg bg-[#d4f34a] text-black text-sm font-bold">Export backup (JSON)</button><label class="px-4 py-3 rounded-lg bg-[#222] text-white text-sm text-center cursor-pointer hover:bg-[#2a2a2a]">Import backup (JSON)<input id="importInput" type="file" accept="application/json,.json" class="hidden"></label><button id="exportCsvBtn" class="px-4 py-3 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:border-[#d4f34a]">Export check-ins (CSV)</button><button id="resetDataBtn" class="px-4 py-3 rounded-lg border border-red-900/70 text-red-300 text-sm hover:bg-red-950/40">Reset all data</button></div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-xl bg-[#1e1e1e] border border-[#333] text-xs text-white shadow-xl flex items-center gap-2.5 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none" role="status" aria-live="polite"><span id="toastDot" class="w-2 h-2 rounded-full bg-[#d4f34a]"></span><span id="toastMessage">Saved</span></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'vertex-habit-tracker-v2';
+  const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const CATEGORIES = ['discipline', 'focus', 'health', 'mindset', 'recovery'];
+  const $ = (id) => document.getElementById(id);
+
+  const localDateKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  const dateFromKey = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0, 0);
+  };
+  const shiftDate = (date, days) => {
+    const copy = new Date(date);
+    copy.setDate(copy.getDate() + days);
+    return copy;
+  };
+  const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (ch) => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+  const uid = () => `h_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const today = new Date();
+  const todayKey = localDateKey(today);
+  const monday = shiftDate(today, -((today.getDay() + 6) % 7));
+  const weekDates = Array.from({length: 7}, (_, i) => localDateKey(shiftDate(monday, i)));
+  const weekSet = new Set(weekDates);
+
+  const seedHabits = [
+    {id:'h1', title:'Morning Sunlight & Hydration', category:'health', target_days:7, is_archived:false},
+    {id:'h2', title:'Deep Work (Block 1 - 90m)', category:'focus', target_days:7, is_archived:false},
+    {id:'h3', title:'Strength Training & Mobility', category:'health', target_days:6, is_archived:false},
+    {id:'h4', title:'No Phone Before 9am', category:'mindset', target_days:7, is_archived:false},
+    {id:'h5', title:'Evening Reflection & Journal', category:'mindset', target_days:7, is_archived:false}
+  ];
+
+  function makeSeedState() {
+    const logs = [];
+    const seedDays = [
+      [0,1,2,3,4,5,6], [0,1,2,3,4], [0,2,4,5], [0,1,2,3,4,5,6], [0,1,2,3,4,5,6]
+    ];
+    seedDays.forEach((days, i) => days.forEach((day) => { if (weekDates[day] <= todayKey) logs.push({habit_id:`h${i+1}`, completed_date:weekDates[day]}); }));
+    return {version:2, userName:'Alex V.', habits:seedHabits, logs};
+  }
+
+  let state;
+  let activeCategory = 'all';
+  let toastTimer = null;
+
+  function validState(value) {
+    if (!value || !Array.isArray(value.habits) || !Array.isArray(value.logs)) return false;
+    const habitsOK = value.habits.every(h => h && typeof h.id === 'string' && typeof h.title === 'string' && CATEGORIES.includes(h.category) && [3,5,6,7].includes(Number(h.target_days)));
+    const ids = new Set(value.habits.map(h => h.id));
+    const logsOK = value.logs.every(l => l && typeof l.habit_id === 'string' && ids.has(l.habit_id) && /^\d{4}-\d{2}-\d{2}$/.test(l.completed_date));
+    return habitsOK && logsOK;
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (validState(parsed)) return {
+          version:2,
+          userName:typeof parsed.userName === 'string' ? parsed.userName.slice(0,50) : 'Alex V.',
+          habits:parsed.habits.map(h => ({id:h.id, title:h.title, category:h.category, target_days:Number(h.target_days), is_archived:Boolean(h.is_archived)})),
+          logs:dedupeLogs(parsed.logs)
+        };
+      }
+    } catch (error) {
+      console.warn('Could not load saved Vertex data:', error);
+    }
+    const fresh = makeSeedState();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch (error) { console.warn('Local storage unavailable:', error); }
+    return fresh;
+  }
+
+  function dedupeLogs(logs) {
+    const seen = new Set();
+    return logs.filter(log => {
+      const key = `${log.habit_id}|${log.completed_date}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      $('databaseIndicator').textContent = '● Local storage';
+      return true;
+    } catch (error) {
+      console.error('Could not save Vertex data:', error);
+      $('databaseIndicator').textContent = '● Storage unavailable';
+      showToast('Could not save: browser storage may be full');
+      return false;
+    }
+  }
+
+  function showToast(message) {
+    const toast = $('toast');
+    $('toastMessage').textContent = message;
+    toast.classList.remove('translate-y-20', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.add('translate-y-20', 'opacity-0');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }, 2500);
+  }
+
+  function activeHabits() { return state.habits.filter(h => !h.is_archived); }
+  function logsFor(habitId, dateKey) { return state.logs.some(log => log.habit_id === habitId && log.completed_date === dateKey); }
+  function isDone(habitId, dateKey) { return logsFor(habitId, dateKey); }
+  function doneCount(habitId, dates) { return dates.reduce((n, date) => n + (isDone(habitId, date) ? 1 : 0), 0); }
+
+  function streakFor(habitId) {
+    let cursor = dateFromKey(todayKey);
+    if (!isDone(habitId, localDateKey(cursor))) cursor = shiftDate(cursor, -1);
+    let count = 0;
+    for (let i = 0; i < 3660; i++) {
+      const key = localDateKey(cursor);
+      if (!isDone(habitId, key)) break;
+      count++;
+      cursor = shiftDate(cursor, -1);
+    }
+    return count;
+  }
+
+  function overallStreak(active) {
+    if (!active.length) return 0;
+    let cursor = dateFromKey(todayKey);
+    const allDone = (key) => active.every(h => isDone(h.id, key));
+    if (!allDone(localDateKey(cursor))) cursor = shiftDate(cursor, -1);
+    let count = 0;
+    for (let i = 0; i < 3660; i++) {
+      if (!allDone(localDateKey(cursor))) break;
+      count++;
+      cursor = shiftDate(cursor, -1);
+    }
+    return count;
+  }
+
+  function formatWeekRange() {
+    const start = dateFromKey(weekDates[0]);
+    const end = dateFromKey(weekDates[6]);
+    const fmt = {month:'short', day:'numeric'};
+    const sameYear = start.getFullYear() === end.getFullYear();
+    return `${start.toLocaleDateString('en-US', fmt)} — ${end.toLocaleDateString('en-US', {...fmt, year:'numeric'})}`;
+  }
+
+  function renderHeaders() {
+    $('currentWeekRange').textContent = formatWeekRange();
+    weekDates.forEach((key, index) => {
+      const date = dateFromKey(key);
+      $(`colDay${index}`).innerHTML = `<div>${DAY_NAMES[index]}</div><div class="text-[9px] text-[#555] font-normal">${date.getDate()}</div>`;
+    });
+  }
+
+  function renderFilterMenu() {
+    const menu = $('filterMenu');
+    const categoriesPresent = [...new Set(activeHabits().map(h => h.category))].sort();
+    const options = ['all', ...categoriesPresent];
+    menu.innerHTML = options.map(category => {
+      const label = category === 'all' ? 'All Categories' : category[0].toUpperCase() + category.slice(1);
+      const selected = activeCategory === category;
+      return `<button type="button" data-category="${escapeHTML(category)}" class="w-full text-left px-3 py-2 rounded-lg text-xs ${selected ? 'bg-[#252a18] text-[#d4f34a]' : 'text-[#bbb] hover:bg-[#222]'}">${selected ? '✓ ' : ''}${escapeHTML(label)}</button>`;
+    }).join('');
+    $('toggleFilterBtn').textContent = `${activeCategory === 'all' ? 'All Categories' : activeCategory[0].toUpperCase()+activeCategory.slice(1)} ▾`;
+    $('toggleFilterBtn').setAttribute('aria-expanded', String(!menu.classList.contains('hidden')));
+  }
+
+  function renderTable() {
+    const tbody = $('habitsTableBody');
+    const visible = activeHabits().filter(h => activeCategory === 'all' || h.category === activeCategory);
+    $('emptyStateContainer').classList.toggle('hidden', visible.length !== 0);
+    tbody.innerHTML = visible.map(h => {
+      const daysDone = doneCount(h.id, weekDates);
+      const percent = Math.round((daysDone / 7) * 100);
+      const dayCells = weekDates.map(date => {
+        const done = isDone(h.id, date);
+        const future = date > todayKey;
+        return `<td class="py-3 px-2 text-center"><button type="button" data-action="toggle" data-id="${escapeHTML(h.id)}" data-date="${date}" aria-label="${done?'Undo':'Mark'} ${escapeHTML(h.title)} for ${date}" aria-pressed="${done}" ${future?'disabled title="Future date"':''} class="w-7 h-7 rounded-md transition-all flex items-center justify-center mx-auto text-xs font-bold ${done?'bg-[#d4f34a] text-black shadow-sm ring-1 ring-[#d4f34a]/30':'bg-[#1a1a1a] text-transparent hover:bg-[#252525] border border-[#2a2a2a]'} ${future?'opacity-40 cursor-not-allowed':''}">✓</button></td>`;
+      }).join('');
+      return `<tr class="hover:bg-[#161616]/60 transition-colors">
+        <td class="py-4 px-6"><div class="font-medium text-white text-sm break-words">${escapeHTML(h.title)}</div><div class="text-[11px] text-[#666] font-mono mt-0.5">Target: ${h.target_days} days/week</div></td>
+        <td class="py-4 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-[#1d1d1d] text-[#aaa] border border-[#262626]">${escapeHTML(h.category)}</span></td>
+        ${dayCells}
+        <td class="py-4 px-4 text-right font-mono text-xs font-semibold ${percent >= 80?'text-[#d4f34a]':'text-white'}">${percent}%</td>
+        <td class="py-4 px-4 text-right font-mono text-xs text-[#888]">${streakFor(h.id)}d</td>
+        <td class="py-4 px-3 text-center whitespace-nowrap"><button type="button" data-action="edit" data-id="${escapeHTML(h.id)}" class="text-[#aaa] hover:text-[#d4f34a] text-xs mr-2" title="Edit habit">Edit</button><button type="button" data-action="archive" data-id="${escapeHTML(h.id)}" class="text-[#777] hover:text-red-400 text-xs" title="Archive habit">Archive</button></td>
+      </tr>`;
+    }).join('');
+    if (!visible.length && activeHabits().length && activeCategory !== 'all') {
+      $('emptyStateContainer').querySelector('h4').textContent = 'No habits in this category';
+      $('emptyStateContainer').querySelector('p').textContent = 'Choose another category or create a new habit.';
+    } else {
+      $('emptyStateContainer').querySelector('h4').textContent = 'No habits found';
+      $('emptyStateContainer').querySelector('p').textContent = 'Create a habit or choose another category filter.';
+    }
+  }
+
+  function renderMetrics() {
+    const active = activeHabits();
+    const activeIds = new Set(active.map(h => h.id));
+    const weeklyLogs = state.logs.filter(log => activeIds.has(log.habit_id) && weekSet.has(log.completed_date));
+    const totalPossible = active.length * 7;
+    const totalCompleted = weeklyLogs.length;
+    const weeklyRate = totalPossible ? Math.round(totalCompleted / totalPossible * 100) : 0;
+    $('weeklyCompletionsSummary').textContent = `Weekly completed: ${totalCompleted} / ${totalPossible} (${weeklyRate}%)`;
+
+    const todayCompleted = active.filter(h => isDone(h.id, todayKey)).length;
+    $('statTodayRate').textContent = `${active.length ? Math.round(todayCompleted / active.length * 100) : 0}%`;
+    $('statTodayCount').textContent = `${todayCompleted} of ${active.length}`;
+
+    const streak = overallStreak(active);
+    $('statCurrentStreak').textContent = `${streak} ${streak === 1 ? 'Day' : 'Days'}`;
+    $('streakStatBadge').textContent = `${streak} ${streak === 1 ? 'Day' : 'Days'}`;
+
+    const thirtyDays = Array.from({length:30}, (_, i) => localDateKey(shiftDate(dateFromKey(todayKey), i - 29)));
+    let completed30 = 0;
+    let expected30 = 0;
+    active.forEach(h => {
+      const expectedDays = thirtyDays.filter((key, index) => {
+        const weekday = dateFromKey(key).getDay();
+        const mondayIndex = (weekday + 6) % 7;
+        if (h.target_days === 5) return mondayIndex < 5;
+        if (h.target_days === 6) return mondayIndex < 6;
+        if (h.target_days === 3) return mondayIndex === 0 || mondayIndex === 2 || mondayIndex === 4;
+        return true;
+      });
+      expected30 += expectedDays.length;
+      completed30 += expectedDays.filter(key => isDone(h.id, key)).length;
+    });
+    $('stat30DayRate').textContent = `${expected30 ? Math.min(100, Math.round(completed30 / expected30 * 100)) : 0}%`;
+    $('stat30DayCaption').textContent = `${completed30} of ${expected30} target check-ins`;
+    $('statActiveHabitsCount').textContent = `${active.length} ${active.length === 1 ? 'Habit' : 'Habits'}`;
+    $('archivedCount').textContent = `${state.habits.filter(h => h.is_archived).length} archived`;
+
+    const insightTitle = $('insightTitle');
+    const insightText = $('insightText');
+    if (!active.length) {
+      insightTitle.textContent = 'Start with one habit';
+      insightText.textContent = 'Add a habit to begin tracking your consistency.';
+    } else {
+      const best = [...active].sort((a,b) => doneCount(b.id, weekDates) - doneCount(a.id, weekDates))[0];
+      const bestCount = doneCount(best.id, weekDates);
+      insightTitle.textContent = best.title;
+      insightText.textContent = `${bestCount} of 7 days completed this week (${Math.round(bestCount/7*100)}%). Keep building consistency at a pace that works for you.`;
+    }
+  }
+
+  function renderChart() {
+    const container = $('barChartContainer');
+    const labels = $('barChartLabels');
+    const active = activeHabits();
+    container.innerHTML = weekDates.map((date, idx) => {
+      const count = active.filter(h => isDone(h.id, date)).length;
+      const pct = active.length ? Math.round(count / active.length * 100) : 0;
+      const height = active.length ? Math.max(4, Math.round(pct * 1.35)) : 4;
+      const isToday = date === todayKey;
+      return `<div class="flex-1 flex flex-col items-center gap-2 group h-full justify-end" title="${DAY_NAMES[idx]}: ${pct}%"><span class="text-[10px] font-mono text-[#aaa]">${pct}%</span><div class="w-full max-w-[32px] rounded-t transition-all duration-300 ${isToday?'bg-[#d4f34a]':'bg-[#292929] group-hover:bg-[#383838]'}" style="height:${height}px;max-height:140px"></div></div>`;
+    }).join('');
+    labels.innerHTML = DAY_NAMES.map((day, idx) => `<span class="flex-1 text-center ${weekDates[idx]===todayKey?'text-[#d4f34a]':''}">${day}</span>`).join('');
+  }
+
+  function render() {
+    renderHeaders();
+    renderFilterMenu();
+    renderTable();
+    renderMetrics();
+    renderChart();
+  }
+
+  function openHabitModal(habit = null) {
+    $('habitForm').reset();
+    $('habitIdInput').value = habit ? habit.id : '';
+    $('modalTitle').textContent = habit ? 'Edit Habit' : 'Create New Habit';
+    $('habitTitleInput').value = habit ? habit.title : '';
+    $('habitCategoryInput').value = habit ? habit.category : 'discipline';
+    $('habitFrequencyInput').value = String(habit ? habit.target_days : 7);
+    $('habitModal').classList.remove('hidden');
+    $('habitTitleInput').focus();
+  }
+  function closeHabitModal() { $('habitModal').classList.add('hidden'); }
+
+  $('openNewHabitBtn').addEventListener('click', () => openHabitModal());
+  $('emptyAddHabitBtn').addEventListener('click', () => openHabitModal());
+  $('closeModalBtn').addEventListener('click', closeHabitModal);
+  $('cancelModalBtn').addEventListener('click', closeHabitModal);
+  $('habitModal').addEventListener('click', (event) => { if (event.target === $('habitModal')) closeHabitModal(); });
+  $('habitForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const title = $('habitTitleInput').value.trim();
+    const category = $('habitCategoryInput').value;
+    const targetDays = Number($('habitFrequencyInput').value);
+    const id = $('habitIdInput').value;
+    if (!title || title.length > 100 || !CATEGORIES.includes(category) || ![3,5,6,7].includes(targetDays)) {
+      showToast('Please check the habit details');
+      return;
+    }
+    if (id) {
+      const habit = state.habits.find(item => item.id === id && !item.is_archived);
+      if (!habit) { showToast('Habit not found'); return; }
+      Object.assign(habit, {title, category, target_days:targetDays});
+      showToast('Habit updated');
+    } else {
+      state.habits.push({id:uid(), title, category, target_days:targetDays, is_archived:false});
+      showToast('Habit created');
+    }
+    saveState();
+    closeHabitModal();
+    render();
+  });
+
+  $('habitsTableBody').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const {action, id, date} = button.dataset;
+    const habit = state.habits.find(item => item.id === id && !item.is_archived);
+    if (!habit) return;
+    if (action === 'toggle') {
+      if (date > todayKey) { showToast('Future dates cannot be checked yet'); return; }
+      const index = state.logs.findIndex(log => log.habit_id === id && log.completed_date === date);
+      if (index >= 0) {
+        state.logs.splice(index, 1);
+        showToast('Check-in removed');
+      } else {
+        state.logs.push({habit_id:id, completed_date:date});
+        showToast('Habit marked complete');
+      }
+      saveState();
+      render();
+    } else if (action === 'edit') {
+      openHabitModal(habit);
+    } else if (action === 'archive') {
+      if (!confirm(`Archive "${habit.title}"? Its past check-ins will be kept.`)) return;
+      habit.is_archived = true;
+      if (activeCategory === habit.category) activeCategory = 'all';
+      saveState();
+      render();
+      showToast('Habit archived');
+    }
+  });
+
+  $('toggleFilterBtn').addEventListener('click', () => {
+    $('filterMenu').classList.toggle('hidden');
+    renderFilterMenu();
+  });
+  $('filterMenu').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-category]');
+    if (!button) return;
+    activeCategory = button.dataset.category;
+    $('filterMenu').classList.add('hidden');
+    render();
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('#toggleFilterBtn') && !event.target.closest('#filterMenu')) {
+      $('filterMenu').classList.add('hidden');
+      renderFilterMenu();
+    }
+  });
+
+  $('navDashboard').addEventListener('click', () => $('matrixSection').scrollIntoView({behavior:'smooth', block:'start'}));
+  $('navAnalytics').addEventListener('click', () => $('advancedAnalyticsSection').scrollIntoView({behavior:'smooth', block:'start'}));
+  $('navSettings').addEventListener('click', () => $('settingsModal').classList.remove('hidden'));
+
+  $('userProfileBtn').addEventListener('click', (event) => {
+    if (event.target.closest('#logoutBtn')) return;
+    const name = prompt('Display name:', state.userName || 'Alex V.');
+    if (name === null) return;
+    const cleanName = name.trim().slice(0,50);
+    if (!cleanName) { showToast('Name cannot be empty'); return; }
+    state.userName = cleanName;
+    saveState();
+    updateProfile();
+    showToast('Profile name updated');
+  });
+  function updateProfile() {
+    const name = state.userName || 'Alex V.';
+    $('userNameLabel').textContent = name;
+    $('userAvatar').textContent = name.trim().charAt(0).toUpperCase() || 'A';
+  }
+  $('logoutBtn').addEventListener('click', (event) => {
+    event.stopPropagation();
+    showToast('Demo mode: no account is connected');
+  });
+
+  $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.add('hidden'));
+  $('settingsModal').addEventListener('click', (event) => { if (event.target === $('settingsModal')) $('settingsModal').classList.add('hidden'); });
+  $('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({app:"Vertex Habit Tracker", state, extras: (typeof extras !== "undefined" ? extras : {goals:[],schedules:{},breaks:[],reminders:{}})}, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `vertex-habits-${todayKey}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Backup exported');
+  });
+  $('importInput').addEventListener('change', async (event) => {
+    const file = event.target.files && event.target.files[0]; if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const incoming = parsed.state || parsed;
+      if (!validState(incoming)) throw new Error('Invalid backup format');
+      state = {version:2,userName:typeof incoming.userName==='string'?incoming.userName.slice(0,50):'Alex V.',habits:incoming.habits.map(h=>({id:h.id,title:h.title,category:h.category,target_days:Number(h.target_days),is_archived:Boolean(h.is_archived)})),logs:dedupeLogs(incoming.logs)};
+      if (parsed.extras && typeof parsed.extras==='object') { extras={goals:Array.isArray(parsed.extras.goals)?parsed.extras.goals:[],schedules:parsed.extras.schedules||{},breaks:Array.isArray(parsed.extras.breaks)?parsed.extras.breaks:[],reminders:parsed.extras.reminders||{}}; saveExtras(); }
+      saveState(); activeCategory='all'; updateProfile(); render(); $('settingsModal').classList.add('hidden'); showToast('Backup imported');
+    } catch (_) { showToast('Import failed: invalid JSON backup'); }
+    finally { event.target.value=''; }
+  });
+  $('resetDataBtn').addEventListener('click', () => {
+    if (!confirm('Reset all habits and check-ins to the original demo data? This cannot be undone unless you exported a backup.')) return;
+    state = makeSeedState();
+    if (typeof extras !== 'undefined') { extras = {goals:[],schedules:{},breaks:[],reminders:{}}; saveExtras(); }
+    activeCategory = 'all';
+    saveState();
+    updateProfile();
+    render();
+    $('settingsModal').classList.add('hidden');
+    showToast('Demo data reset');
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeHabitModal();
+      $('settingsModal').classList.add('hidden');
+      $('filterMenu').classList.add('hidden');
+      renderFilterMenu();
+    }
+  });
+
+  // Extra features use a separate, versioned local-storage record.
+  const EXTRA_KEY = 'vertex-habit-tracker-extras-v1';
+  const WEEKDAY_LABELS = ['M','T','W','T','F','S','S'];
+  function loadExtras() {
+    try {
+      const raw = localStorage.getItem(EXTRA_KEY);
+      if (!raw) return {goals:[], schedules:{}, breaks:[], reminders:{}};
+      const x = JSON.parse(raw);
+      return {goals:Array.isArray(x.goals)?x.goals.filter(g=>g&&typeof g.id==='string'&&typeof g.title==='string'&&['checkins','days'].includes(g.type)&&Number.isFinite(Number(g.target))):[], schedules:x.schedules&&typeof x.schedules==='object'?x.schedules:{}, breaks:Array.isArray(x.breaks)?x.breaks.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort():[], reminders:x.reminders&&typeof x.reminders==='object'?x.reminders:{}};
+    } catch (_) { return {goals:[], schedules:{}, breaks:[], reminders:{}}; }
+  }
+  let extras = loadExtras();
+  function saveExtras() { try { localStorage.setItem(EXTRA_KEY, JSON.stringify(extras)); return true; } catch (_) { showToast('Could not save settings'); return false; } }
+  function isPaused(key) { return extras.breaks.includes(key); }
+  function habitSchedule(h) { const days=extras.schedules[h.id]; return Array.isArray(days)&&days.length ? days : [0,1,2,3,4,5,6].filter(i=>h.target_days===7 || (h.target_days===6&&i<6) || (h.target_days===5&&i<5) || (h.target_days===3&&[0,2,4].includes(i))); }
+  function scheduledOn(h,key) { const idx=(dateFromKey(key).getDay()+6)%7; return habitSchedule(h).includes(idx); }
+  // Replace streak functions with pause-aware calculations.
+  const baseStreakFor = streakFor;
+  streakFor = function(habitId) {
+    let cursor=dateFromKey(todayKey); if (!isDone(habitId,localDateKey(cursor)) && !isPaused(localDateKey(cursor))) cursor=shiftDate(cursor,-1);
+    let count=0; for(let i=0;i<3660;i++){const key=localDateKey(cursor); if(isPaused(key)){cursor=shiftDate(cursor,-1);continue;} if(!isDone(habitId,key))break; count++;cursor=shiftDate(cursor,-1);} return count;
+  };
+  overallStreak = function(active) {
+    if(!active.length)return 0; let cursor=dateFromKey(todayKey); const allDone=k=>active.every(h=>!scheduledOn(h,k)||isDone(h.id,k));
+    if(!allDone(localDateKey(cursor))&&!isPaused(localDateKey(cursor)))cursor=shiftDate(cursor,-1); let count=0;
+    for(let i=0;i<3660;i++){const k=localDateKey(cursor);if(isPaused(k)){cursor=shiftDate(cursor,-1);continue;}if(!allDone(k))break;count++;cursor=shiftDate(cursor,-1);}return count;
+  };
+  // Flexible schedule: render scheduled days and prevent check-ins on unplanned days.
+  const originalRenderTable = renderTable;
+  renderTable = function() {
+    originalRenderTable();
+    $('habitsTableBody').querySelectorAll('button[data-action="toggle"]').forEach(btn=>{
+      const h=state.habits.find(item=>item.id===btn.dataset.id); if(!h)return;
+      if(!scheduledOn(h,btn.dataset.date)){btn.disabled=true;btn.title='Not scheduled for this day';btn.classList.add('opacity-25','cursor-not-allowed');}
+      if(isPaused(btn.dataset.date)){btn.disabled=true;btn.title='Planned rest day';btn.classList.add('opacity-40');}
+    });
+  };
+  const originalRenderMetrics = renderMetrics;
+  renderMetrics = function(){ originalRenderMetrics(); renderExtras(); };
+  function xpTotal(){ return state.logs.reduce((sum,l)=>sum+(state.habits.some(h=>h.id===l.habit_id)?10:0),0); }
+  function goalProgress(g){ const active=activeHabits(); if(g.type==='days'){const keys=new Set(state.logs.filter(l=>active.some(h=>h.id===l.habit_id)).map(l=>l.completed_date));return keys.size;}return state.logs.filter(l=>active.some(h=>h.id===l.habit_id)).length; }
+  function renderExtras(){
+    const active=activeHabits();
+    $('goalsList').innerHTML=extras.goals.length?extras.goals.map(g=>{const value=goalProgress(g),pct=Math.min(100,Math.round(value/Number(g.target)*100));return `<div class="rounded-lg bg-[#191919] border border-[#292929] p-3"><div class="flex items-start justify-between gap-2"><div class="min-w-0"><div class="text-sm font-semibold text-white break-words">${escapeHTML(g.title)}</div><div class="text-[11px] text-[#888] mt-1">${value} / ${Number(g.target)} ${g.type==='days'?'active days':'check-ins'}</div></div><button data-goal-delete="${escapeHTML(g.id)}" class="text-xs text-[#777] hover:text-red-300">Remove</button></div><div class="h-1.5 rounded-full bg-[#292929] mt-3 overflow-hidden"><div class="h-full bg-[#d4f34a] rounded-full" style="width:${pct}%"></div></div>${pct>=100?'<div class="text-[10px] text-[#d4f34a] mt-2">Goal achieved ✓</div>':''}</div>`}).join(''):'<p class="text-xs text-[#777]">No goals yet. Add one above.</p>';
+    const xp=xpTotal(), level=Math.floor(xp/100)+1; $('xpTotal').textContent=`${xp} XP`; $('xpLevel').textContent=`Level ${level} · ${level<3?'Beginner':level<6?'Builder':level<10?'Consistent':'Elite'}`;
+    const checks=state.logs.length, activeDays=new Set(state.logs.map(l=>l.completed_date)).size, achievements=[['First steps',checks>=1,'Complete your first habit'],['10 check-ins',checks>=10,'Log 10 check-ins'],['50 check-ins',checks>=50,'Log 50 check-ins'],['7 active days',activeDays>=7,'Complete habits on 7 days'],['100 check-ins',checks>=100,'Log 100 check-ins']];
+    $('achievementCount').textContent=`${achievements.filter(a=>a[1]).length}/${achievements.length}`;
+    $('achievementsList').innerHTML=achievements.map(a=>`<div class="rounded-lg border ${a[1]?'border-[#596b20] bg-[#1d2611]':'border-[#292929] bg-[#191919]'} p-3"><div class="text-xs font-semibold ${a[1]?'text-[#d4f34a]':'text-[#777]'}">${a[1]?'✓ ':'○ '}${a[0]}</div><div class="text-[10px] text-[#777] mt-1">${a[2]}</div></div>`).join('');
+    const selected=$('scheduleHabit').value; $('scheduleHabit').innerHTML=active.map(h=>`<option value="${escapeHTML(h.id)}">${escapeHTML(h.title)}</option>`).join(''); if(active.some(h=>h.id===selected))$('scheduleHabit').value=selected;
+    renderWeekdayPicker();
+    $('breakDaysList').innerHTML=extras.breaks.length?extras.breaks.map(k=>`<button data-break-remove="${k}" class="px-2 py-1 rounded-md bg-[#202020] border border-[#333] text-[11px] text-[#ccc]">${k} ×</button>`).join(''):'<span class="text-[11px] text-[#777]">No planned rest days</span>';
+    $('reminderList').innerHTML=active.map(h=>{const r=extras.reminders[h.id]||{};return `<div class="flex items-center gap-2 rounded-lg bg-[#191919] p-2"><label class="flex items-center gap-2 flex-1 min-w-0 text-xs text-[#ccc]"><input type="checkbox" data-reminder-on="${escapeHTML(h.id)}" ${r.enabled?'checked':''} class="accent-[#d4f34a]"> <span class="truncate">${escapeHTML(h.title)}</span></label><input aria-label="Reminder time for ${escapeHTML(h.title)}" data-reminder-time="${escapeHTML(h.id)}" type="time" value="${escapeHTML(r.time||'20:00')}" class="w-24 px-2 py-1.5 rounded bg-[#101010] border border-[#333] text-xs text-white"></div>`}).join('')||'<p class="text-xs text-[#777]">Add a habit to set reminders.</p>';
+    renderAdvancedAnalytics();
+  }
+  function renderWeekdayPicker(){const id=$('scheduleHabit').value;const h=state.habits.find(x=>x.id===id);const days=h?habitSchedule(h):[];$('weekdayPicker').innerHTML=WEEKDAY_LABELS.map((d,i)=>`<label class="text-center"><input type="checkbox" data-weekday="${i}" ${days.includes(i)?'checked':''} class="peer sr-only"><span class="block rounded-lg border border-[#333] bg-[#191919] py-2 text-xs text-[#999] peer-checked:bg-[#d4f34a] peer-checked:text-black peer-checked:border-[#d4f34a]">${d}</span></label>`).join('');}
+  function renderAdvancedAnalytics(){const n=Number($('analyticsRange').value)||30;const dates=Array.from({length:n},(_,i)=>localDateKey(shiftDate(dateFromKey(todayKey),i-(n-1))));const active=activeHabits();let completed=0,expected=0;const per=active.map(h=>{const due=dates.filter(k=>scheduledOn(h,k)&&!isPaused(k));const done=due.filter(k=>isDone(h.id,k));completed+=done.length;expected+=due.length;return {h,count:done.length,total:due.length,pct:due.length?Math.round(done.length/due.length*100):0};});$('advancedRate').textContent=`${expected?Math.round(completed/expected*100):0}%`;$('advancedCheckins').textContent=String(completed);const best=[...per].sort((a,b)=>b.pct-a.pct)[0];$('advancedBest').textContent=best?`${best.h.title} (${best.pct}%)`:'—';$('advancedBreaks').textContent=String(extras.breaks.filter(k=>dates.includes(k)).length);$('advancedHabitStats').innerHTML=per.length?per.map(x=>`<div><div class="flex justify-between gap-3 text-xs mb-1"><span class="text-[#ccc] truncate">${escapeHTML(x.h.title)}</span><span class="text-[#d4f34a] font-mono">${x.count}/${x.total} · ${x.pct}%</span></div><div class="h-1.5 rounded-full bg-[#292929] overflow-hidden"><div class="h-full bg-[#d4f34a]" style="width:${x.pct}%"></div></div></div>`).join(''):'<p class="text-xs text-[#777]">No active habits to analyze.</p>';}
+  $('goalForm').addEventListener('submit',e=>{e.preventDefault();const title=$('goalTitle').value.trim(),target=Number($('goalTarget').value),type=$('goalType').value;if(!title||!Number.isInteger(target)||target<1||target>10000){showToast('Enter a valid goal and target');return;}extras.goals.push({id:uid(),title,target,type});saveExtras();$('goalForm').reset();$('goalTarget').value='20';renderExtras();showToast('Goal added');});
+  $('goalsList').addEventListener('click',e=>{const b=e.target.closest('[data-goal-delete]');if(!b)return;extras.goals=extras.goals.filter(g=>g.id!==b.dataset.goalDelete);saveExtras();renderExtras();showToast('Goal removed');});
+  $('scheduleHabit').addEventListener('change',renderWeekdayPicker);
+  $('saveScheduleBtn').addEventListener('click',()=>{const id=$('scheduleHabit').value;if(!id){showToast('Create a habit first');return;}const days=[...$('weekdayPicker').querySelectorAll('input:checked')].map(x=>Number(x.dataset.weekday));if(!days.length){showToast('Choose at least one weekday');return;}extras.schedules[id]=days;saveExtras();render();showToast('Schedule saved');});
+  $('addBreakBtn').addEventListener('click',()=>{const k=$('breakDate').value;if(!k||k<todayKey){showToast('Choose today or a future date');return;}if(!extras.breaks.includes(k))extras.breaks.push(k);extras.breaks.sort();saveExtras();render();showToast('Planned rest day added');});
+  $('breakDaysList').addEventListener('click',e=>{const b=e.target.closest('[data-break-remove]');if(!b)return;extras.breaks=extras.breaks.filter(k=>k!==b.dataset.breakRemove);saveExtras();render();showToast('Rest day removed');});
+  $('enableNotificationsBtn').addEventListener('click',async()=>{if(!('Notification' in window)){showToast('Notifications are not supported in this browser');return;}try{const result=await Notification.requestPermission();showToast(result==='granted'?'Notifications enabled':'Notification permission not granted');}catch(_){showToast('Could not request notification permission');}});
+  $('reminderList').addEventListener('change',e=>{const on=e.target.closest('[data-reminder-on]'),time=e.target.closest('[data-reminder-time]');const id=on?on.dataset.reminderOn:time?time.dataset.reminderTime:null;if(!id)return;const old=extras.reminders[id]||{time:'20:00',enabled:false};extras.reminders[id]={enabled:on?on.checked:old.enabled,time:time?time.value:old.time};saveExtras();showToast('Reminder settings saved');});
+  let lastReminderMinute='';
+  function checkReminders(){const now=new Date(),minute=`${localDateKey(now)} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;if(minute===lastReminderMinute)return;lastReminderMinute=minute;for(const h of activeHabits()){const r=extras.reminders[h.id];if(r&&r.enabled&&r.time===minute&&!isDone(h.id,todayKey)){showToast(`Reminder: ${h.title}`);if('Notification'in window&&Notification.permission==='granted'){try{new Notification('Vertex Habit Tracker',{body:`Time for: ${h.title}`});}catch(_){}}}}}
+  setInterval(checkReminders,15000);
+  $('analyticsRange').addEventListener('change',renderAdvancedAnalytics);
+  $('exportCsvBtn').addEventListener('click',()=>{const rows=[['Habit','Category','Date','Completed'],...state.logs.map(l=>{const h=state.habits.find(x=>x.id===l.habit_id);return [h?h.title:'Archived habit',h?h.category:'',l.completed_date,'Yes'];})];const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`vertex-checkins-${todayKey}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('CSV exported');});
+
+  state = loadState();
+  updateProfile();
+  render();
+  renderExtras();
+
+})();
+</script>
+</body>
+</html>
